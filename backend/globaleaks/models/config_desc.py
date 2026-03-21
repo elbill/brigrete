@@ -430,6 +430,8 @@ ConfigL10NFilters = {
         'tip_reminder_mail_title',
         'tip_update_mail_template',
         'tip_update_mail_title',
+        'whistleblower_tip_update_mail_template',
+        'whistleblower_tip_update_mail_title',
         'unread_tips_mail_template',
         'unread_tips_mail_title',
         'user_credentials'

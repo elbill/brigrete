@@ -595,6 +595,7 @@ supported_template_types = {
     'tip_access': UserNodeKeyword,
     'tip_reminder': UserNodeKeyword,
     'tip_update': TipKeyword,
+    'whistleblower_tip_update': TipKeyword,
     'tip_expiration_summary': ExpirationSummaryKeyword,
     'unread_tips': UserNodeKeyword,
     'pgp_alert': PGPAlertKeyword,

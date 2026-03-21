@@ -994,18 +994,19 @@ def create_identityaccessrequest(session, tid, user_id, user_cc, itip_id, reques
 
 
 @transact
-def create_comment(session, tid, user_id, itip_id, content, visibility='public'):
+def create_comment(session, tid, user_id, user_cc, itip_id, content, visibility='public'):
     """
     Transaction for registering a new comment
     :param session: An ORM session
     :param tid: A tenant ID
     :param user_id: The user id of the user creating the comment
+    :param user_cc: The decrypted private key of the user creating the comment
     :param itip_id: The rtip associated to the comment to be created
     :param content: The content of the comment
     :param visibility: The visibility type of the comment
     :return: A serialized descriptor of the comment
     """
-    _, rtip, itip = db_access_rtip(session, tid, user_id, itip_id)
+    user, rtip, itip = db_access_rtip(session, tid, user_id, itip_id)
 
     rtip.last_access = datetime_now()
     if visibility == 'public':
@@ -1023,6 +1024,79 @@ def create_comment(session, tid, user_id, itip_id, content, visibility='public')
     comment.visibility = visibility
     session.add(comment)
     session.flush()
+
+    if visibility == 'public' and comment.author_id is not None:
+        wb_email = None
+
+        field_ids = [
+            field_id for (field_id, value) in session.query(models.FieldAttr.field_id, models.FieldAttr.value)
+                                                  .filter(models.FieldAttr.name == 'trigger_whistleblower_notification')
+                                                  .all()
+            if value is True or (isinstance(value, str) and value.lower() == 'true')
+        ]
+
+        if field_ids:
+            tip_key = None
+            if itip.crypto_tip_pub_key:
+                tip_key = GCE.asymmetric_decrypt(user_cc, Base64Encoder.decode(rtip.crypto_tip_prv_key))
+
+            def extract_matching_email(obj):
+                if isinstance(obj, dict):
+                    for key, value in obj.items():
+                        if key in field_ids and isinstance(value, list):
+                            for answer in value:
+                                if isinstance(answer, dict):
+                                    candidate = answer.get('value')
+                                    if isinstance(candidate, str):
+                                        candidate = candidate.strip()
+                                        if candidate:
+                                            return candidate
+                        nested_value = extract_matching_email(value)
+                        if nested_value:
+                            return nested_value
+                elif isinstance(obj, list):
+                    for item in obj:
+                        nested_value = extract_matching_email(item)
+                        if nested_value:
+                            return nested_value
+                return None
+
+            for itip_answers in session.query(models.InternalTipAnswers) \
+                                       .filter(models.InternalTipAnswers.internaltip_id == itip.id) \
+                                       .order_by(models.InternalTipAnswers.creation_date):
+                answers = itip_answers.answers
+
+                if tip_key and isinstance(answers, str):
+                    try:
+                        answers = json.loads(GCE.asymmetric_decrypt(tip_key, Base64Encoder.decode(answers.encode())).decode())
+                    except Exception:
+                        continue
+
+                wb_email = extract_matching_email(answers)
+                if wb_email:
+                    break
+
+        if wb_email and re.match(requests.email_regexp, wb_email):
+            lang = user.language
+            data = {
+                'type': 'whistleblower_tip_update',
+                'user': {
+                    'mail_address': wb_email,
+                    'language': lang,
+                    'notification': True,
+                    'pgp_key_public': ''
+                },
+                'tip': serializers.serialize_rtip(session, itip, rtip, lang),
+                'node': db_admin_serialize_node(session, tid, lang),
+                'notification': db_get_notification(session, tid, lang),
+            }
+            subject, body = Templating().get_mail_subject_and_body(data)
+            session.add(models.Mail({
+                'address': wb_email,
+                'subject': subject,
+                'body': body,
+                'tid': tid
+            }))
 
     ret = serializers.serialize_comment(session, comment)
     ret['content'] = content
@@ -1221,7 +1295,7 @@ class RTipCommentCollection(BaseHandler):
 
     def post(self, itip_id):
         request = self.validate_request(self.request.content.read(), requests.CommentDesc)
-        return create_comment(self.request.tid, self.session.user_id, itip_id, request['content'], request['visibility'])
+        return create_comment(self.request.tid, self.session.user_id, self.session.cc, itip_id, request['content'], request['visibility'])
 
 
 class WhistleblowerFileDownload(BaseHandler):

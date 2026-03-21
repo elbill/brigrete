@@ -58,6 +58,8 @@ export class notificationResolverModel {
   tip_mail_title: string;
   tip_update_mail_template: string;
   tip_update_mail_title: string;
+  whistleblower_tip_update_mail_template: string;
+  whistleblower_tip_update_mail_title: string;
   unread_tips_mail_template: string;
   unread_tips_mail_title: string;
   user_credentials: string;

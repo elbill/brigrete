@@ -913,6 +913,7 @@ class TestGLWithPopulatedDB(TestGL):
         for rtip_desc in self.dummyRTips:
             yield rtip.create_comment(1,
                                       rtip_desc['receiver_id'],
+                                      USER_PRV_KEY,
                                       rtip_desc['id'],
                                       'comment')
 

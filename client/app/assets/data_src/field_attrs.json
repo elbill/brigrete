@@ -3,7 +3,8 @@
     "min_len": {"type": "int", "value": "0"},
     "max_len": {"type": "int", "value": "100"},
     "input_validation": {"type": "unicode", "value": "none"},
-    "regexp": {"type": "unicode", "value": ""}
+    "regexp": {"type": "unicode", "value": ""},
+    "trigger_whistleblower_notification": {"type": "bool", "value": false}
  },
  "textarea": {
     "min_len": {"type": "int", "value": "0"},

@@ -5088,6 +5088,12 @@
       "zh_CN": "角色：{Role}\n用户名：{Username}\n密码：{Password}",
       "zh_HK": "身份：{Role}\n用戶名：{Username}\n密碼：{Password}",
       "zh_TW": "角色: {Role}\n用戶名: {Username}\n密碼: {Password}"
+    },
+    "whistleblower_tip_update_mail_template": {
+      "en": "Dear Whistleblower,\n\nThis is an email to notify you that your report has been updated with a new public comment.\n\nThe report can be accessed at:\n{Url}\n\nKind regards,\n{NodeName}"
+    },
+    "whistleblower_tip_update_mail_title": {
+      "en": "Report updated"
     }
   },
   "node": {
